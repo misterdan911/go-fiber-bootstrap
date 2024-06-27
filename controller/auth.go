@@ -2,19 +2,30 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"log"
 )
 
 type User struct {
-	Username string `json:"username" example:"danu"`
-	Email    string `json:"email" example:"dciptadi@gmail.com"`
-	Password string `json:"password" example:"12345678"`
+	Username string `json:"username" validate:"required" example:"danu"`
+	Email    string `json:"email" validate:"required,email,email_unique" example:"dciptadi@gmail.com"`
+	Password string `json:"password" validate:"required" example:"12345678"`
 }
 
 type ResponseOK struct {
 	Status string `json:"status" example:"success"`
 	Data   *User  `json:"data"`
+}
+
+var validate = validator.New()
+
+func init() {
+	err := validate.RegisterValidation("email_unique", emailUnique)
+	if err != nil {
+		log.Fatal("Failed to register custom validation 'email_unique'")
+	}
 }
 
 // SignUp godoc
@@ -39,6 +50,29 @@ func SignUp(c *fiber.Ctx) error {
 	if err := c.BodyParser(user); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "cannot parse JSON",
+		})
+	}
+
+	// Validate the user struct
+	if err := validate.Struct(user); err != nil {
+		// Format validation errors
+		errors := make(map[string]string)
+		for _, err := range err.(validator.ValidationErrors) {
+			var message string
+
+			switch err.Tag() {
+			case "email_unique":
+				message = "Email has already been registered"
+			default:
+				//message = fmt.Sprintf("Field '%s' is invalid", err.Field())
+				message = fmt.Sprintf("Field '%s' %s", err.Field(), err.Tag())
+			}
+
+			errors[err.Field()] = message
+		}
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status": "fail",
+			"data":   errors,
 		})
 	}
 
@@ -72,4 +106,20 @@ func SignUp(c *fiber.Ctx) error {
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	return c.Send(jsonResponse)
 
+}
+
+// Custom validation function
+func emailUnique(fl validator.FieldLevel) bool {
+	/*
+		email := fl.Field().String()
+		var user User
+		if err := main.DB.Where("email = ?", email).First(&user).Error; err == nil {
+			return false // email already exists
+		} else if err != gorm.ErrRecordNotFound {
+			return false // database error
+		}
+		return true // email is unique
+	*/
+
+	return false
 }
