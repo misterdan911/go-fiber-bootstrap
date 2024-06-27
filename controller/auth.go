@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"go-fiber-bootstrap/database"
 	"log"
 )
 
@@ -76,6 +77,9 @@ func SignUp(c *fiber.Ctx) error {
 		})
 	}
 
+	// Create
+	database.DB.Create(user)
+
 	// Access the parsed user data
 	// For example, you can print it or save it to the database
 	println("Name: ", user.Username)
@@ -121,5 +125,5 @@ func emailUnique(fl validator.FieldLevel) bool {
 		return true // email is unique
 	*/
 
-	return false
+	return true
 }
