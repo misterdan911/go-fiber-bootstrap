@@ -5,26 +5,25 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"go-fiber-bootstrap/orm"
-	"golang.org/x/crypto/bcrypt"
+	"go-fiber-bootstrap/model"
+	"go-fiber-bootstrap/service/authservice"
 	"log"
 )
 
-type User struct {
-	Username string `json:"username" validate:"required" example:"danu"`
-	Email    string `json:"email" validate:"required,email,email_unique" example:"dciptadi@gmail.com"`
-	Password string `json:"password" validate:"required" example:"12345678"`
+type ResponseOK struct {
+	Status string      `json:"status" example:"success"`
+	Data   *model.User `json:"data"`
 }
 
-type ResponseOK struct {
-	Status string `json:"status" example:"success"`
-	Data   *User  `json:"data"`
+type ResponseError struct {
+	Status  string `json:"status" example:"error"`
+	Message string `json:"message"`
 }
 
 var validate = validator.New()
 
 func init() {
-	err := validate.RegisterValidation("email_unique", emailUnique)
+	err := validate.RegisterValidation("email_unique", authservice.EmailUnique)
 	if err != nil {
 		log.Fatal("Failed to register custom validation 'email_unique'")
 	}
@@ -37,16 +36,16 @@ func init() {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			user	body		User	true	"Add user"
+//	@Param			user	body		model.User	true	"Add user"
 //	@Success		200		{object}	ResponseOK
-//	@Failure		400		{object}	User
-//	@Failure		404		{object}	User
-//	@Failure		500		{object}	User
+//	@Failure		400		{object}	model.User
+//	@Failure		404		{object}	model.User
+//	@Failure		500		{object}	model.User
 //	@Router			/signup [post]
 func SignUp(c *fiber.Ctx) error {
 
 	// Create a new User struct
-	user := new(User)
+	user := new(model.User)
 
 	// Parse the JSON request body into the user struct
 	if err := c.BodyParser(user); err != nil {
@@ -79,19 +78,27 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// Create
-	user.Password, _ = HashPassword(user.Password)
-	orm.DB.Create(user)
+	err := authservice.AddNewUser(user)
+	var response interface{}
+
+	if err != nil {
+		c.Status(fiber.StatusInternalServerError)
+		response = ResponseError{
+			Status:  "error",
+			Message: err.Error(),
+		}
+	} else {
+		response = ResponseOK{
+			Status: "success",
+			Data:   user,
+		}
+	}
 
 	// Access the parsed user data
 	// For example, you can print it or save it to the orm
 	println("Name: ", user.Username)
 	println("Email: ", user.Email)
 	println("Password: ", user.Password)
-
-	response := ResponseOK{
-		Status: "success",
-		Data:   user,
-	}
 
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
@@ -111,29 +118,4 @@ func SignUp(c *fiber.Ctx) error {
 
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	return c.Send(jsonResponse)
-
-}
-
-// Custom validation function
-func emailUnique(fl validator.FieldLevel) bool {
-	email := fl.Field().String()
-	var user User
-
-	result := orm.DB.Find(&user, "email = ?", email)
-
-	if result.RowsAffected == 0 {
-		return true
-	} else {
-		return false
-	}
-}
-
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
-func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
 }
