@@ -1,4 +1,4 @@
-package database
+package orm
 
 import (
 	"fmt"
@@ -17,9 +17,9 @@ func ConnectDatabase() {
 
 	database, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to orm: %v", err)
 	}
 
-	// database.AutoMigrate(&User{}, &Book{})
+	// orm.AutoMigrate(&User{}, &Book{})
 	DB = database
 }

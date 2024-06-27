@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"go-fiber-bootstrap/database"
+	"go-fiber-bootstrap/orm"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 )
 
@@ -78,10 +79,11 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// Create
-	database.DB.Create(user)
+	user.Password, _ = HashPassword(user.Password)
+	orm.DB.Create(user)
 
 	// Access the parsed user data
-	// For example, you can print it or save it to the database
+	// For example, you can print it or save it to the orm
 	println("Name: ", user.Username)
 	println("Email: ", user.Email)
 	println("Password: ", user.Password)
@@ -114,16 +116,24 @@ func SignUp(c *fiber.Ctx) error {
 
 // Custom validation function
 func emailUnique(fl validator.FieldLevel) bool {
-	/*
-		email := fl.Field().String()
-		var user User
-		if err := main.DB.Where("email = ?", email).First(&user).Error; err == nil {
-			return false // email already exists
-		} else if err != gorm.ErrRecordNotFound {
-			return false // database error
-		}
-		return true // email is unique
-	*/
+	email := fl.Field().String()
+	var user User
 
-	return true
+	result := orm.DB.Find(&user, "email = ?", email)
+
+	if result.RowsAffected == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

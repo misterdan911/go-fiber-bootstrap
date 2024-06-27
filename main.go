@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
-	"go-fiber-bootstrap/database"
 	_ "go-fiber-bootstrap/docs"
+	"go-fiber-bootstrap/orm"
 	"go-fiber-bootstrap/routes"
 	"log"
 	"os"
@@ -59,7 +59,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	database.ConnectDatabase()
+	orm.ConnectDatabase()
 
 	app := fiber.New()
 	routes.Setup(app)
