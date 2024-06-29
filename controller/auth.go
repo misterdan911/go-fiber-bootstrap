@@ -27,6 +27,11 @@ func init() {
 	if err != nil {
 		log.Fatal("Failed to register custom validation 'email_unique'")
 	}
+
+	err2 := validate.RegisterValidation("username_unique", authservice.UsernameUnique)
+	if err2 != nil {
+		log.Fatal("Failed to register custom validation 'email_unique'")
+	}
 }
 
 // SignUp godoc
@@ -36,12 +41,12 @@ func init() {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			user	body		model.User	true	"Add user"
-//	@Success		200		{object}	ResponseOK
+//	@Param			user	body		ExampleSignedUpUser	true	"Add user"
+//	@Success		200		{object}	AppResponse
 //	@Failure		400		{object}	model.User
 //	@Failure		404		{object}	model.User
 //	@Failure		500		{object}	model.User
-//	@Router			/signup [post]
+//	@Router			/api/v1/auth/signup [post]
 func SignUp(c *fiber.Ctx) error {
 
 	// Create a new User struct
@@ -64,6 +69,8 @@ func SignUp(c *fiber.Ctx) error {
 			switch err.Tag() {
 			case "email_unique":
 				message = "Email has already been registered"
+			case "username_unique":
+				message = "Username has already been registered"
 			default:
 				//message = fmt.Sprintf("Field '%s' is invalid", err.Field())
 				message = fmt.Sprintf("Field '%s' %s", err.Field(), err.Tag())
@@ -79,6 +86,7 @@ func SignUp(c *fiber.Ctx) error {
 
 	// Create
 	err := authservice.AddNewUser(user)
+	user.Password = ""
 	var response interface{}
 
 	if err != nil {
@@ -128,8 +136,8 @@ func SignUp(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		ExampleSignedInUser	true	"SignIn User"
-//	@Success		200		{object}	ResponseOK
-//	@Router			/signin [post]
+//	@Success		200		{object}	AppResponse
+//	@Router			/api/v1/auth/signin [post]
 func SignIn(c *fiber.Ctx) error {
 
 	signedInUser := new(dto.SignedInUser)
@@ -141,6 +149,7 @@ func SignIn(c *fiber.Ctx) error {
 	}
 
 	isValid, userData, jwt := authservice.ValidateSignIn(signedInUser)
+	userData.Password = ""
 
 	var response interface{}
 

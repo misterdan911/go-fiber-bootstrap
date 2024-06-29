@@ -81,6 +81,19 @@ func EmailUnique(fl validator.FieldLevel) bool {
 	}
 }
 
+func UsernameUnique(fl validator.FieldLevel) bool {
+	username := fl.Field().String()
+	var user model.User
+
+	result := orm.DB.Find(&user, "username = ?", username)
+
+	if result.RowsAffected == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
 func GenerateJWT() (string, error) {
 
 	// Create a new token object, specifying signing method and the claims

@@ -14,7 +14,12 @@ func Setup(app *fiber.App) {
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
-	app.Post("/signup", controller.SignUp)
-	app.Post("/signin", controller.SignIn)
+	//app.Post("/signup", controller.SignUp)
+	//app.Post("/signin", controller.SignIn)
 
+	apiBaseRoute := app.Group("/api/v1")
+
+	authRoute := apiBaseRoute.Group("/auth")
+	authRoute.Post("/signup", controller.SignUp)
+	authRoute.Post("/signin", controller.SignIn)
 }
