@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"go-fiber-bootstrap/dto"
 	"go-fiber-bootstrap/model"
 	"go-fiber-bootstrap/service/authservice"
 	"log"
 )
 
-type ResponseOK struct {
-	Status string      `json:"status" example:"success"`
-	Data   *model.User `json:"data"`
+type SignInResponseData struct {
+	User model.User `json:"user"`
+	Jwt  string     `json:"jwt"`
 }
 
-type ResponseError struct {
-	Status  string `json:"status" example:"error"`
-	Message string `json:"message"`
+type SignInFailMessage struct {
+	SignIn string `json:"signin"`
 }
 
 var validate = validator.New()
@@ -88,7 +88,7 @@ func SignUp(c *fiber.Ctx) error {
 			Message: err.Error(),
 		}
 	} else {
-		response = ResponseOK{
+		response = AppResponse{
 			Status: "success",
 			Data:   user,
 		}
@@ -116,6 +116,64 @@ func SignUp(c *fiber.Ctx) error {
 
 	//return c.JSON(jsonResponse)
 
+	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+	return c.Send(jsonResponse)
+}
+
+// SignIn godoc
+//
+//	@Summary		Signing in user
+//	@Description	Signing in user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			user	body		ExampleSignedInUser	true	"SignIn User"
+//	@Success		200		{object}	ResponseOK
+//	@Router			/signin [post]
+func SignIn(c *fiber.Ctx) error {
+
+	signedInUser := new(dto.SignedInUser)
+
+	if err := c.BodyParser(signedInUser); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "cannot parse SignIn JSON",
+		})
+	}
+
+	isValid, userData, jwt := authservice.ValidateSignIn(signedInUser)
+
+	var response interface{}
+
+	/*
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+	*/
+
+	if isValid {
+		resData := SignInResponseData{
+			User: userData,
+			Jwt:  jwt,
+		}
+		response = AppResponse{Status: "success", Data: resData}
+	} else {
+		signInFailMessage := SignInFailMessage{SignIn: "Incorrect username, email, or password"}
+		response = AppResponse{
+			Status: "fail",
+			Data:   signInFailMessage,
+		}
+	}
+
+	// supaya field2 response json nya sesuai urutan kita
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshaling JSON:", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Internal Server Error")
+	}
+
+	// supaya response headernya 'application/json'
 	c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	return c.Send(jsonResponse)
 }

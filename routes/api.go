@@ -15,5 +15,6 @@ func Setup(app *fiber.App) {
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
 	app.Post("/signup", controller.SignUp)
+	app.Post("/signin", controller.SignIn)
 
 }
