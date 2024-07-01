@@ -38,7 +38,7 @@ func init() {
 //
 //	@Summary		Signing up new user
 //	@Description	Signing up new user
-//	@Tags			users
+//	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		ExampleSignedUpUser	true	"Add user"
@@ -132,7 +132,7 @@ func SignUp(c *fiber.Ctx) error {
 //
 //	@Summary		Signing in user
 //	@Description	Signing in user
-//	@Tags			users
+//	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
 //	@Param			user	body		ExampleSignedInUser	true	"SignIn User"

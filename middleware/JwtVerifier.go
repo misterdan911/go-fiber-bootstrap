@@ -19,13 +19,30 @@ type ResponseFailed struct {
 	Data    string `json:"data"`
 }
 
-func JwtVerifier(ctx *fiber.Ctx) {
+func JwtVerifier(c *fiber.Ctx) error {
 
 	var isValid bool = true
 	var errorMessage string
 
-	//auth := ctx.Request.Header["Authorization"]
-	auth := ctx.Get("Authorization")
+	/*
+		// Get all headers
+		headers := c.GetReqHeaders()
+
+		// Iterate over headers and print them
+		for key, value := range headers {
+			fmt.Printf("%s: %s\n", key, value)
+		}
+	*/
+
+	//auth := c.Request.Header["Authorization"]
+	auth := c.Get("Authorization")
+
+	if auth == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Cannot get Authorization header",
+		})
+	}
 
 	// kalau tidak membawa jwt token
 	//if len(auth) <= 0 {
@@ -67,7 +84,7 @@ func JwtVerifier(ctx *fiber.Ctx) {
 	}
 
 	if isValid {
-		ctx.Next()
+		return c.Next()
 	} else {
 		/*
 			var response ResponseFailed
@@ -75,12 +92,13 @@ func JwtVerifier(ctx *fiber.Ctx) {
 			response.Message = "failed"
 			// response.Message = "Unauthorized"
 			response.Message = errorMessage
-			ctx.JSON(200, response)
-			ctx.Abort()
+			c.JSON(200, response)
+			c.Abort()
 			return
 		*/
 
-		abortRequest(ctx, errorMessage)
+		//abortRequest(c, errorMessage)
+		return c.Status(fiber.StatusForbidden).SendString(errorMessage)
 	}
 
 }
